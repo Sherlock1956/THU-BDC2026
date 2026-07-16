@@ -16,6 +16,51 @@ import os
 import json
 import multiprocessing as mp
 import random
+import sys
+import subprocess
+from datetime import datetime
+
+
+def _setup_console_logging():
+    """设置控制台日志，将输出同时输出到控制台和日志文件。"""
+    try:
+        branch = subprocess.run(
+            ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+            capture_output=True, text=True, check=True
+        ).stdout.strip()
+    except Exception:
+        branch = 'unknown'
+
+    log_dir = os.path.join('output', 'logs')
+    os.makedirs(log_dir, exist_ok=True)
+
+    date_str = datetime.now().strftime('%Y-%m-%d')
+    log_file = os.path.join(log_dir, f'{branch}-{date_str}.log')
+
+    fh = open(log_file, 'a', encoding='utf-8')
+
+    class _Tee:
+        def __init__(self, *streams):
+            self.streams = streams
+
+        def write(self, data):
+            for s in self.streams:
+                s.write(data)
+                s.flush()
+
+        def flush(self):
+            for s in self.streams:
+                s.flush()
+
+        def fileno(self):
+            return self.streams[0].fileno()
+
+    sys.stdout = _Tee(sys.stdout, fh)
+    sys.stderr = _Tee(sys.stderr, fh)
+
+    print(f"[Log] 控制台输出已记录到: {os.path.abspath(log_file)}")
+
+
 def set_seed(seed=42):
     random.seed(seed)
     np.random.seed(seed)
@@ -549,6 +594,7 @@ def split_train_val_by_last_month(df, sequence_length):
 # 主程序
 def main():
     set_seed(config.get('seed', 42))
+    _setup_console_logging()
     output_dir = config['output_dir']
     os.makedirs(output_dir,exist_ok=True)
     # 保存在output_dir中保存当前的配置文件，以便复现
