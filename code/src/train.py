@@ -221,6 +221,7 @@ def calculate_ranking_metrics(y_pred, y_true, masks, k=5):
     
     # Metrics accumulators
     pred_return_sum_list = []
+    pred_top5_return_list = []
     max_return_sum_list = []
     random_return_sum_list = []
     ratio_pred_list = []
@@ -241,6 +242,7 @@ def calculate_ranking_metrics(y_pred, y_true, masks, k=5):
         _, pred_indices = torch.topk(valid_pred, k)
         pred_top_returns = valid_true[pred_indices]
         pred_return_sum = pred_top_returns.sum().item()
+        pred_top5_return = pred_top_returns.mean().item()
         
         # 2. True Top 5 (Theoretical Max)
         _, true_indices = torch.topk(valid_true, k)
@@ -258,6 +260,7 @@ def calculate_ranking_metrics(y_pred, y_true, masks, k=5):
         final_score = (pred_return_sum - random_return_sum) / (denominator + 1e-12) if abs(denominator) > 1e-6 else 0.0
         
         pred_return_sum_list.append(pred_return_sum)
+        pred_top5_return_list.append(pred_top5_return)
         max_return_sum_list.append(max_return_sum)
         random_return_sum_list.append(random_return_sum)
         ratio_pred_list.append(ratio_pred)
@@ -266,6 +269,7 @@ def calculate_ranking_metrics(y_pred, y_true, masks, k=5):
         
     metrics = {
         'pred_return_sum': np.mean(pred_return_sum_list) if pred_return_sum_list else 0.0,
+        'pred_top5_return': np.mean(pred_top5_return_list) if pred_top5_return_list else 0.0,
         'max_return_sum': np.mean(max_return_sum_list) if max_return_sum_list else 0.0,
         'random_return_sum': np.mean(random_return_sum_list) if random_return_sum_list else 0.0,
     }
@@ -727,15 +731,23 @@ def main():
             
 
             # 保存最佳模型（基于final score）
-            current_final_score = eval_metrics.get('final_score', 0.0)
-            if current_final_score > best_score:
-                best_score = current_final_score
+            # current_final_score = eval_metrics.get('final_score', 0.0)
+            # if current_final_score > best_score:
+            #     best_score = current_final_score
+            #     best_epoch = epoch + 1
+            #     torch.save(model.state_dict(), os.path.join(output_dir, 'best_model.pth'))
+            #     print(f"保存最佳模型 - final score: {best_score:.4f}")
+
+            # 保存最佳模型（基于pred_top5_return）
+            current_top5_return = eval_metrics.get('pred_top5_return', -float('inf'))
+            if current_top5_return > best_score:
+                best_score = current_top5_return
                 best_epoch = epoch + 1
                 torch.save(model.state_dict(), os.path.join(output_dir, 'best_model.pth'))
-                print(f"保存最佳模型 - final score: {best_score:.4f}")
-        print(f"\n训练完成！最佳 epoch: {best_epoch}, 最佳 final score: {best_score:.4f}")
+                print(f"保存最佳模型 - pred_top5_return: {best_score:.6f}")
+        print(f"\n训练完成！最佳 epoch: {best_epoch}, 最佳 pred_top5_return: {best_score:.6f}")
         with open(os.path.join(output_dir, 'final_score.txt'), 'w') as f:
-            f.write(f"Best epoch: {best_epoch}\\nBest final_score: {best_score:.6f}\\n")
+            f.write(f"Best epoch: {best_epoch}\nBest pred_top5_return: {best_score:.6f}\n")
 
         if writer:
             writer.close()
