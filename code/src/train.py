@@ -224,7 +224,7 @@ def calculate_ranking_metrics(y_pred, y_true, masks, k=5):
     
     # Metrics accumulators
     pred_return_sum_list = []
-    pred_top5_return_list = []
+    pred_top5_return_list = [] # 前五个收益的平均值
     max_return_sum_list = []
     random_return_sum_list = []
     ratio_pred_list = []
