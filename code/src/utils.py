@@ -551,6 +551,7 @@ def create_ranking_dataset_vectorized(data, features, sequence_length, ranking_d
     # - 历史窗口长度满足 sequence_length
     # - end_date 之后存在 5 条未来数据
     # - 这 5 条未来数据在自然日上连续（任意节假日/周末导致的日期跳跃都会被过滤）
+    # 上面这个要求是不合理的，如果按照他的要求，只有周一到周五才能通过检查，这样会大大限制数据
     all_windows = []  # 每个元素: (end_date, stock_code, sequence, target)
 
     print("Step 1: 为每只股票生成滑动窗口...")
@@ -576,11 +577,11 @@ def create_ranking_dataset_vectorized(data, features, sequence_length, ranking_d
             if end_idx + 5 >= n:
                 continue
 
-            # 未来 5 条数据日期必须连续（自然日相邻）
-            future_dates = dates_day[end_idx + 1:end_idx + 6]
-            future_diffs = np.diff(future_dates).astype(np.int64)
-            if not np.all(future_diffs == 1):
-                continue
+            # # 未来 5 条数据日期必须连续（自然日相邻）
+            # future_dates = dates_day[end_idx + 1:end_idx + 6]
+            # future_diffs = np.diff(future_dates).astype(np.int64)
+            # if not np.all(future_diffs == 1):
+            #     continue
 
             seq = feature_values[i : i + sequence_length]   # (L, F)
             target = labels[end_idx]                        # label 对应窗口最后一天的次日涨跌幅
