@@ -31,6 +31,9 @@ def _setup_console_logging():
     except Exception:
         branch = 'unknown'
 
+    # 将分支名中的路径分隔符替换为 '-'，避免产生子目录
+    branch = branch.replace('/', '-').replace('\\', '-')
+
     log_dir = os.path.join('output', 'logs')
     os.makedirs(log_dir, exist_ok=True)
 
